@@ -21,6 +21,8 @@ use Wienkit\BolPlazaClient\BolPlazaClient;
 
 use Wienkit\BolPlazaClient\Exceptions\BolPlazaClientException;
 
+include_once "./config.inc.php";
+
 class BolPlazaClientTest extends TestCase
 {
     /**
@@ -32,10 +34,11 @@ class BolPlazaClientTest extends TestCase
     {
         date_default_timezone_set('Europe/Amsterdam');
 
-        $publicKey = getenv('PHP_PUBKEY');
-        $privateKey = getenv('PHP_PRIVKEY');
+        $publicKey = defined('BOL_COM_TEST_PUBKEY') ? BOL_COM_TEST_PUBKEY : getenv('PHP_PUBKEY');
+        $privateKey = defined('BOL_COM_TEST_PRIVKEY') ? BOL_COM_TEST_PRIVKEY : getenv('PHP_PRIVKEY');
 
         $this->client = new BolPlazaClient($publicKey, $privateKey);
+		//$this->client->setVerbose(true);
         $this->client->setTestMode(true);
 
         // Set client with mock request class
@@ -331,6 +334,19 @@ class BolPlazaClientTest extends TestCase
         $this->assertEquals($result->Url, 'https://test-plazaapi.bol.com/offers/v2/export/offers.csv');
         return $result->Url;
     }
+
+	public function testGetSingleOffer()
+	{
+		$this->markTestSkipped('Skipped because of incomplete bol.com test environment');
+
+		$ean = '1';
+		$result = $this->client->getSingleOffer($ean);
+		$this->assertTrue(is_array($result));
+		$this->assertEquals(\count($result), 1);
+		$offer = $result[0];
+		$this->assertInstanceOf(BolPlazaOffer::class, $offer);
+		$this->assertEquals($ean, $offer->EAN);
+	}
 
     /**
      * @TODO: Ignored because Test env returns other logic than prod

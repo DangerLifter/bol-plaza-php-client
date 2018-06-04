@@ -47,6 +47,8 @@ class BolPlazaClient
     // response headers placeholder
     private $responseHeaders = [];
 
+    private $_verbose = false;
+
     /**
      * BolPlazaClient constructor.
      * @param $publicKey
@@ -57,6 +59,12 @@ class BolPlazaClient
         $this->publicKey = $publicKey;
         $this->privateKey = $privateKey;
     }
+
+    public function setVerbose(bool $verbose)
+	{
+		$this->_verbose = true === $verbose;
+		return $this;
+	}
 
     /**
      * Enable or disable testmode (default disabled)
@@ -93,6 +101,24 @@ class BolPlazaClient
         $orders = BolPlazaDataParser::createCollectionFromResponse('BolPlazaOrder', $apiResult);
         return $orders;
     }
+
+	/**
+	 * Get single order
+	 * @param string $orderId
+	 * @return BolPlazaOrder
+	 * @throws BolPlazaClientException
+	 * @throws BolPlazaClientRateLimitException
+	 */
+	public function getSingleOrder($orderId)
+	{
+		$url = '/services/rest/orders/' . self::API_VERSION . '/'. $orderId;
+
+		$apiResult = $this->makeRequest('GET', $url, [], ['Accept: application/vnd.orders-v2.1+xml']);
+
+		$orders = BolPlazaDataParser::createCollectionFromResponse('BolPlazaOrder', $apiResult);
+
+		return isset($orders[0]) ? $orders[0] : null;
+	}
 
     /**
      * Get single order
@@ -592,13 +618,18 @@ class BolPlazaClient
         $httpRequest->setOption(CURLOPT_RETURNTRANSFER, true);
         $httpRequest->setOption(CURLOPT_TIMEOUT, self::HTTP_TIMEOUT);
         $httpRequest->setOption(CURLOPT_HEADER, false);
-        $httpRequest->setOption(CURLOPT_USERAGENT, self::HTTP_USER_AGENT);
-        $httpRequest->setOption(CURLOPT_HTTPHEADER, $headers);
 
-        if (in_array($method, ['POST', 'PUT', 'DELETE']) && ! is_null($data)) {
-            $httpRequest->setOption(CURLOPT_POSTFIELDS, $data);
-        } elseif ($method == 'GET' && !empty($data)) {
-            $httpRequest->setOption(CURLOPT_URL, $url . '?' . http_build_query($data));
+        $httpRequest->setOption(CURLOPT_USERAGENT, self::HTTP_USER_AGENT);
+        if ($this->_verbose) {
+			$httpRequest->setOption(CURLOPT_VERBOSE, true);
+		}
+
+        $httpRequest->setOption(CURLOPT_HTTPHEADER, $headers);
+		if (\in_array($method, ['POST', 'PUT', 'DELETE'])) {
+			if ($data) $httpRequest->setOption(CURLOPT_POSTFIELDS, $data);
+        } elseif ($method === 'GET') {
+			if ($data) $url .= '?' . http_build_query($data);
+            $httpRequest->setOption(CURLOPT_URL, $url);
         }
 
         if ($this->skipSslVerification) {
@@ -633,11 +664,7 @@ class BolPlazaClient
      */
     protected function getUrlFromEndpoint($endpoint)
     {
-        if ($this->testMode) {
-            return self::URL_TEST . $endpoint;
-        } else {
-            return self::URL_LIVE . $endpoint;
-        }
+		return ($this->testMode ? self::URL_TEST : self::URL_LIVE).$endpoint;
     }
 
     /**

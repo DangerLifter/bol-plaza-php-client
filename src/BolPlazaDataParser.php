@@ -45,8 +45,7 @@ class BolPlazaDataParser
             $model = new $entity;
             $xmlElement = self::parseXmlResponse($xml, $model->getXmlNamespace());
         }
-
-        $object = self::fillModelFromXmlObject(new $entity, $xmlElement);
+        $object = self::fillModelFromXmlObject($model, $xmlElement);
         return $object;
     }
 
@@ -58,17 +57,13 @@ class BolPlazaDataParser
      */
     public static function fillModelFromXmlObject(BaseModel $model, SimpleXMLElement $xmlObject)
     {
-        /* @var SimpleXMLElement $child */
-        foreach ($xmlObject as $name => $child)
-        {
-            if ($model->attributeExists($name))
-            {
+    	/* @var SimpleXMLElement $child */
+        foreach ($xmlObject as $name => $child) {
+            if ($model->attributeExists($name)) {
                 $model->$name = (string)$child;
-            } elseif ($model->nestedEntityExists($name))
-            {
+            } elseif ($model->nestedEntityExists($name)) {
                 $model->$name = self::createEntityFromResponse($model->getNestedEntity($name), $child);
-            } elseif ($model->childEntityExists($name))
-            {
+            } elseif ($model->childEntityExists($name)) {
                 $model->$name = self::createCollectionFromResponse($model->getChildEntity($name)['entityClass'], $child);
             }
         }

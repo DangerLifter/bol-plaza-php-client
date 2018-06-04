@@ -7,6 +7,8 @@ namespace Wienkit\BolPlazaClient\Entities;
  * @package Wienkit\BolPlazaClient\Entities
  *
  * @param string $OrderItemId
+ * @param string $OrderId
+ * @param string $OrderDate
  * @param string $EAN
  * @param string $OfferReference
  * @param string $Title
@@ -23,6 +25,8 @@ class BolPlazaOrderItem extends BaseModel {
 
     protected $attributes = [
         'OrderItemId',
+		'OrderId',
+		'OrderDate',
         'EAN',
         'OfferReference',
         'Title',

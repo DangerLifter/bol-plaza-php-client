@@ -3,3 +3,4 @@ vendor
 composer.lock
 test.php
 phpunit.xml
+tests/config.inc.php
