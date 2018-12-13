@@ -15,6 +15,7 @@ use Wienkit\BolPlazaClient\Entities\BolPlazaInboundProduct;
 use Wienkit\BolPlazaClient\Entities\BolPlazaDeliveryWindowTimeSlot;
 use Wienkit\BolPlazaClient\Entities\BolPlazaInboundProductlabelsRequest;
 use Wienkit\BolPlazaClient\Entities\BolPlazaInboundProductLabel;
+use Wienkit\BolPlazaClient\Requests\CurlHttpRequest;
 
 use Wienkit\BolPlazaClient\BolPlazaClient;
 
@@ -30,19 +31,48 @@ class BolPlazaClientTest extends TestCase
     public function setUp()
     {
         date_default_timezone_set('Europe/Amsterdam');
-        
+
         $publicKey = getenv('PHP_PUBKEY');
         $privateKey = getenv('PHP_PRIVKEY');
 
         $this->client = new BolPlazaClient($publicKey, $privateKey);
         $this->client->setTestMode(true);
+
+        // Set client with mock request class
+        $this->httpRequestMock = $this->getMockBuilder(CurlHttpRequest::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $this->clientWithMockedHttpRequest = $this
+            ->getMockBuilder(BolPlazaClient::class)
+            ->setConstructorArgs([$publicKey, $privateKey])
+            ->setMethods(['createHttpRequest'])
+            ->getMock();
+        $this->clientWithMockedHttpRequest->expects($this->any())
+            ->method('createHttpRequest')
+            ->willReturn($this->httpRequestMock);
+        $this->clientWithMockedHttpRequest->setTestMode(true);
     }
 
-    public function testOrderRetrieve()
+    /**
+     * Orders retrieve test
+     */
+    public function testOrdersRetrieve()
     {
-        $orders = $this->client->getOrders();
+        $this->setupMockResponse('v2.1/get_orders');
+        $orders = $this->clientWithMockedHttpRequest->getOrders();
         $this->assertNotEmpty($orders);
         return $orders;
+    }
+
+
+    /**
+     * Single order retrieve test
+     */
+    public function testSingleOrder()
+    {
+        $this->setupMockResponse('v2.1/get_orders');
+        $orders = $this->clientWithMockedHttpRequest->getOrder(1);
+        $this->assertNotNull($orders);
     }
 
     /**
@@ -82,25 +112,25 @@ class BolPlazaClientTest extends TestCase
      */
     public function testProcessShipments()
     {
+        $this->setupMockResponse('v2.1/process_shipments');
         $shipment = new BolPlazaShipmentRequest();
         $shipment->OrderItemId = '123';
         $shipment->ShipmentReference = 'bolplazatest123';
-        /** deprecated
         $shipment->DateTime = date('Y-m-d\TH:i:s');
         $shipment->ExpectedDeliveryDate = date('Y-m-d\TH:i:s');
-        **/
         $transport = new BolPlazaTransport();
         $transport->TransporterCode = 'GLS';
         $transport->TrackAndTrace = '123456789';
         $shipment->Transport = $transport;
-        $result = $this->client->processShipment($shipment);
+        $result = $this->clientWithMockedHttpRequest->processShipment($shipment);
         $this->assertEquals($result->eventType, 'CONFIRM_SHIPMENT');
     }
 
     public function testGetShipments()
     {
-        $shipments = $this->client->getShipments();
-        $this->assertEquals(count($shipments), 2);
+        $this->setupMockResponse('v2.1/get_shipments');
+        $shipments = $this->clientWithMockedHttpRequest->getShipments();
+        $this->assertEquals(1, count($shipments));
         return $shipments;
     }
 
@@ -410,9 +440,9 @@ class BolPlazaClientTest extends TestCase
         $deliveryWindows = $this->client->getDeliveryWindows($deliveryDate, $qty);
         $this->assertEquals(0, count($deliveryWindows));
     }
-    
+
     /**
-     * Ignored, not present in sandbox 
+     * Ignored, not present in sandbox
      * @group no-ci-test
      */
     public function testCreateInbound()
@@ -420,7 +450,7 @@ class BolPlazaClientTest extends TestCase
         $inboundRequest = new BolPlazaInboundRequest();
         $inboundRequest->Reference = time();
         $inboundRequest->LabellingService = false;
-        
+
         // timeslot
         $timeSlot = new BolPlazaDeliveryWindowTimeSlot();
         $timeSlot->Start = "2017-04-08T08:00:00+02:00";
@@ -431,22 +461,22 @@ class BolPlazaClientTest extends TestCase
         $transporter->Code = 'DHL';
         $transporter->Name = 'DHL';
         $inboundRequest->FbbTransporter = $transporter;
-        
+
         $products = [];
         $product = new BolPlazaInboundProduct();
         $product->EAN = '9789076174082';
         $product->announcedQuantity = 10;
         $products[] = $product;
-        
+
         $product = new BolPlazaInboundProduct();
         $product->EAN = '9789076174083';
         $product->announcedQuantity = 11;
         $products[] = $product;
-        
+
         $inboundProducts = new BolPlazaInboundProducts();
         $inboundProducts->Products = $products;
         $inboundRequest->Products = $inboundProducts;
-        
+
         try {
             $result = $this->client->createInbound($inboundRequest);
             $this->assertGreaterThan(0, $result->id);
@@ -454,9 +484,9 @@ class BolPlazaClientTest extends TestCase
             $this->fail();
         }
     }
-    
+
     /**
-     * Ignored, not present in sandbox 
+     * Ignored, not present in sandbox
      * @group no-ci-test
      */
     public function testGetInbound()
@@ -469,25 +499,25 @@ class BolPlazaClientTest extends TestCase
             $this->fail();
         }
     }
-    
+
     /**
      * Get Product Labels
      * @see https://developers.bol.com/productlabels/
-     * Ignored, not present in sandbox 
+     * Ignored, not present in sandbox
      * @group no-ci-test
      */
     public function testGetProductlabels()
     {
         $labelRequest = new BolPlazaInboundProductlabelsRequest();
-        
+
         $products = [];
         $product = new BolPlazaInboundProductLabel();
         $product->EAN = '8715622005341';
         $product->Quantity = 1;
         $products[] = $product;
-        
+
         $labelRequest->Productlabels = $products;
-        
+
         try {
             $result = $this->client->getProductLabels($labelRequest, 'ZEBRA_Z_PERFORM_1000T');
             $this->assertNotNull($result);
@@ -495,34 +525,34 @@ class BolPlazaClientTest extends TestCase
             $this->fail();
         }
     }
-    
-    
+
+
     /**
      * Test Product Labels Exception
      * @see https://developers.bol.com/productlabels/
-     * Ignored, not present in sandbox 
+     * Ignored, not present in sandbox
      * @group no-ci-test
      */
     public function testGetProductlabelsException()
     {
         $this->expectException(BolPlazaClientException::class);
-        
+
         $labelRequest = new BolPlazaInboundProductlabelsRequest();
-        
+
         $products = [];
         $product = new BolPlazaInboundProductLabel();
         $product->EAN = '0000000000000';
         $product->Quantity = 10;
         $products[] = $product;
-        
+
         $labelRequest->Productlabels = $products;
         $result = $this->client->getProductLabels($labelRequest, 'ZEBRA_Z_PERFORM_1000T');
     }
-    
+
     /**
      * Get Inbound packing list
      * @see https://developers.bol.com/packing-list-details/
-     * Ignored, not present in sandbox 
+     * Ignored, not present in sandbox
      * @group no-ci-test
      */
     public function testGetPackinglist()
@@ -535,7 +565,7 @@ class BolPlazaClientTest extends TestCase
             $this->fail();
         }
     }
-    
+
     /**
      * Get summarized LvB inbound-list
      * @see https://developers.bol.com/inbound-list/
@@ -551,5 +581,11 @@ class BolPlazaClientTest extends TestCase
             $this->fail();
         }
     }
-    
+
+    private function setupMockResponse($path)
+    {
+        $this->httpRequestMock->expects($this->any())
+            ->method('execute')
+            ->willReturn(file_get_contents(__DIR__ . '/responses/' . $path . '.xml'));
+    }
 }
