@@ -126,10 +126,6 @@ class BolPlazaClientTest extends TestCase
         $this->assertEquals($result->eventType, 'CONFIRM_SHIPMENT');
     }
 
-    /**
-     *
-     * @group transport
-     */
     public function testGetShipments()
     {
         $this->setupMockResponse('v2.1/get_shipments');
@@ -166,7 +162,6 @@ class BolPlazaClientTest extends TestCase
     /**
      * @depends testGetShipments
      * @param array $shipments
-     * @group transport
      */
     public function testChangeTransport(array $shipments)
     {

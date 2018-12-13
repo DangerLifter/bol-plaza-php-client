@@ -347,15 +347,15 @@ class BolPlazaClient
      */
     public function getOwnOffers($filter = '')
     {
-      $url = '/offers/' . self::OFFER_API_VERSION . '/export';
-      $data = [];
-      if(!empty($filter)) {
-          $data['filter'] = $filter;
-      }
-      $apiResult = $this->makeRequest('GET', $url, $data);
-      /** @var BolPlazaOfferFile $result */
-      $result = BolPlazaDataParser::createEntityFromResponse('BolPlazaOfferFile', $apiResult);
-      return $result;
+        $url = '/offers/' . self::OFFER_API_VERSION . '/export';
+        $data = [];
+        if(!empty($filter)) {
+            $data['filter'] = $filter;
+        }
+        $apiResult = $this->makeRequest('GET', $url, $data);
+        /** @var BolPlazaOfferFile $result */
+        $result = BolPlazaDataParser::createEntityFromResponse('BolPlazaOfferFile', $apiResult);
+        return $result;
     }
 
     /**
