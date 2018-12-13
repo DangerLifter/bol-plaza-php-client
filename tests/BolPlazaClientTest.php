@@ -143,6 +143,10 @@ class BolPlazaClientTest extends TestCase
         $this->assertEquals($result->eventType, 'CHANGE_TRANSPORT');
     }
 
+    /**
+     * Get payment decommissioned replaced by Invoices API
+     * @group no-ci-test
+     */
     public function testGetPayments()
     {
         $period = '201601';
@@ -348,6 +352,8 @@ class BolPlazaClientTest extends TestCase
 
     /**
      * Test Get Inventory
+     * Not present in sandbox, exclude it from unit test
+     * @group no-ci-test
      */
     public function testGetInventory()
     {
@@ -378,7 +384,8 @@ class BolPlazaClientTest extends TestCase
 
     /**
      * Test Get delivery windows
-     * @group delivery
+     * Not present in sandbox, exclude it from unit test
+     * @group no-ci-test
      */
     public function testGetDeliveryWindows()
     {
@@ -391,7 +398,8 @@ class BolPlazaClientTest extends TestCase
     }
     /**
      * Test Get Empty Delivery windows
-     * @group delivery
+     * Not present in sandbox, exclude it from unit test
+     * @group no-ci-test
      */
     public function testGetDeliveryWindowsEmpty()
     {
