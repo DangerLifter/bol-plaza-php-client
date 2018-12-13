@@ -114,12 +114,23 @@ class BolPlazaClient
     /**
      * Get list of shipments
      * @param int $page The page of the set of shipments
+     * @param string $fulfilmentMethod
+     * @param string|null $orderId
      * @return array
      */
-    public function getShipments($page = 1)
+    public function getShipments($page = 1, $fulfilmentMethod = 'FBR', $orderId = null)
     {
+        $parameters = [
+            'page' => $page,
+            'fulfilment-method' => $fulfilmentMethod,
+        ];
+
+        if (!is_null($orderId)) {
+            $parameters['order-id'] = $orderId;
+        }
+
         $url = '/services/rest/shipments/' . self::API_VERSION;
-        $apiResult = $this->makeRequest('GET', $url, array("page" => $page));
+        $apiResult = $this->makeRequest('GET', $url, $parameters, ['Accept: application/vnd.shipments-v2.1+xml']);
         $shipments = BolPlazaDataParser::createCollectionFromResponse('BolPlazaShipment', $apiResult);
         return $shipments;
     }
