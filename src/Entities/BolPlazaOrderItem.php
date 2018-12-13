@@ -29,6 +29,8 @@ class BolPlazaOrderItem extends BaseModel {
         'Quantity',
         'OfferPrice',
         'TransactionFee',
+        'LatestDeliveryDate',
+        'FulfilmentMethod',
         'PromisedDeliveryDate',
         'OfferCondition',
         'CancelRequest'
