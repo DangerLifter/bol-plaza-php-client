@@ -26,7 +26,7 @@ class CurlHttpRequest
 
     public function getInfo($option = null)
     {
-        return curl_getinfo($this->ch, $option);
+        return !is_null($option) ? curl_getinfo($this->ch, $option) : curl_getinfo($this->ch);
     }
 
     public function close()

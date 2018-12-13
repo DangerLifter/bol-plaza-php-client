@@ -165,6 +165,8 @@ class BolPlazaClientTest extends TestCase
      */
     public function testChangeTransport(array $shipments)
     {
+        $this->markTestSkipped('Skipped because of incomplete bol.com test environment');
+
         $shipment = $shipments[0];
         $changeRequest = new BolPlazaChangeTransportRequest();
         $changeRequest->TransporterCode = '3SNEW941245';
