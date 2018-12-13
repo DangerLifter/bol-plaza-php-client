@@ -102,28 +102,33 @@ class BolPlazaClientTest extends TestCase
      * Test Shipment.
      * As of version 2.1 DateTime, ExpectedDeliveryDate are no longer required
      * @see: https://developers.bol.com/shipments-2-1/#Create_a_shipment_21
+     * @group shipments
      */
     public function testProcessShipments()
     {
+        $this->setupMockResponse('v2.1/process_shipments');
         $shipment = new BolPlazaShipmentRequest();
         $shipment->OrderItemId = '123';
         $shipment->ShipmentReference = 'bolplazatest123';
-        /** deprecated
         $shipment->DateTime = date('Y-m-d\TH:i:s');
         $shipment->ExpectedDeliveryDate = date('Y-m-d\TH:i:s');
-        **/
         $transport = new BolPlazaTransport();
         $transport->TransporterCode = 'GLS';
         $transport->TrackAndTrace = '123456789';
         $shipment->Transport = $transport;
-        $result = $this->client->processShipment($shipment);
+        $result = $this->clientWithMockedHttpRequest->processShipment($shipment);
         $this->assertEquals($result->eventType, 'CONFIRM_SHIPMENT');
     }
 
+    /**
+     *
+     * @group shipments
+     */
     public function testGetShipments()
     {
-        $shipments = $this->client->getShipments();
-        $this->assertEquals(count($shipments), 2);
+        $this->setupMockResponse('v2.1/get_shipments');
+        $shipments = $this->clientWithMockedHttpRequest->getShipments();
+        $this->assertEquals(1, count($shipments));
         return $shipments;
     }
 
