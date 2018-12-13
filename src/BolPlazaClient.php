@@ -24,6 +24,7 @@ use Wienkit\BolPlazaClient\Entities\BolPlazaInbound;
 use Wienkit\BolPlazaClient\Entities\BolPlazaInboundProductlabelsRequest;
 use Wienkit\BolPlazaClient\Exceptions\BolPlazaClientException;
 use Wienkit\BolPlazaClient\Exceptions\BolPlazaClientRateLimitException;
+use Wienkit\BolPlazaClient\Requests\CurlHttpRequest;
 
 class BolPlazaClient
 {
@@ -32,17 +33,20 @@ class BolPlazaClient
     const API_VERSION = 'v2';
     const OFFER_API_VERSION = 'v2';
 
+    const HTTP_TIMEOUT = 60;
+    const HTTP_USER_AGENT = "'Wienkit BolPlaza PHP Client (wienkit.com)'";
+
     private $testMode = false;
     private $skipSslVerification = false;
     // parse response headers
-    private $parseHeaders = false; 
-    
+    private $parseHeaders = false;
+
     private $publicKey;
     private $privateKey;
 
     // response headers placeholder
     private $responseHeaders = [];
-    
+
     /**
      * BolPlazaClient constructor.
      * @param $publicKey
@@ -338,7 +342,7 @@ class BolPlazaClient
     /**
      * Get Latest Reductions filename
      * @see https://developers.bol.com/reductions-list/
-     * 
+     *
      * @access public
      * @return string
      */
@@ -348,12 +352,12 @@ class BolPlazaClient
         $apiResult = $this->makeRequest('GET', $url);
         return $apiResult;
     }
-    
+
     /**
      * Get Reductions
-     * 
+     *
      * @see https://developers.bol.com/reductions-list/
-     * 
+     *
      * @access public
      * @return BolPlazaReductionList
      */
@@ -373,19 +377,19 @@ class BolPlazaClient
     }
     /**
      * Get inventory
-     * 
-     * The inventory endpoint is a specific LVB/FBB endpoint. Meaning this only provides information 
-     * about your Fulfillment by bol.com Inventory. This endpoint does not provide information on your 
+     *
+     * The inventory endpoint is a specific LVB/FBB endpoint. Meaning this only provides information
+     * about your Fulfillment by bol.com Inventory. This endpoint does not provide information on your
      * own stock.
-     * 
+     *
      * @see https://developers.bol.com/get-inventory/
      * @access public
      * @param int $page
      * @param string/int $quantity
      * @param string $stock - valid options: sufficient, insufficient
      * @param string $state - valid options: saleable, unsaleable
-     * @param string $query 
-     * 
+     * @param string $query
+     *
      * @return BolPlazaInventory
      */
     public function getInventory($page = 1, $quantity=null, $stock=null, $state=null, $query=null)
@@ -427,9 +431,9 @@ class BolPlazaClient
         $apiResult = $this->makeRequest('POST', $url, $xmlData);
         $result = BolPlazaDataParser::createEntityFromResponse('BolPlazaProcessStatus', $apiResult);
         return $result;
-        
+
     }
-    
+
     /**
      * Get delivery windows for specific date (LvB)
      *
@@ -447,12 +451,12 @@ class BolPlazaClient
         $timeSlots = BolPlazaDataParser::createCollectionFromResponse('BolPlazaDeliveryWindowTimeSlot', $apiResult);
         return $timeSlots;
     }
-    
+
     /**
-     * Get inbound details 
+     * Get inbound details
      *
      * @see https://developers.bol.com/single-inbound/
-     * 
+     *
      * @access public
      * @param int $id
      * @return BolPlazaInbound
@@ -462,7 +466,7 @@ class BolPlazaClient
         $apiResult = $this->makeRequest('GET', '/services/rest/inbounds/' . (int)$id);
         return BolPlazaDataParser::createEntityFromResponse('BolPlazaInbound', $apiResult);
     }
-    
+
     /**
      * Get (Inbound) Product labels
      *
@@ -478,7 +482,7 @@ class BolPlazaClient
         $xmlData = BolPlazaDataParser::createXmlFromEntity($request, '1');
         return $this->makeRequest('POST', "/services/rest/inbounds/productlabels?format={$format}", $xmlData);
     }
-    
+
     /**
      * Get (Inbound) Packinglist
      *
@@ -492,10 +496,10 @@ class BolPlazaClient
     {
         return $this->makeRequest('GET', "/services/rest/inbounds/" . (int)$id . "/packinglistdetails");
     }
-    
+
     /**
      * Get Inbound list
-     * 
+     *
      * @see https://developers.bol.com/inbound-list/
      *
      * @access public
@@ -519,9 +523,9 @@ class BolPlazaClient
         // copy actual inbounds
         $result->Inbound = $inbounds;
         return $result;
-        
+
     }
-    
+
     /**
      * Makes the request to the server and processes errors
      *
@@ -533,50 +537,44 @@ class BolPlazaClient
      * @throws BolPlazaClientException
      * @throws BolPlazaClientRateLimitException
      */
-    protected function makeRequest($method = 'GET', $endpoint, $data = null, $headers=[])
+    protected function makeRequest($method = 'GET', $endpoint, $data = null, $headers = [])
     {
         $date = gmdate('D, d M Y H:i:s T');
         $contentType = 'application/xml';
         $url = $this->getUrlFromEndpoint($endpoint);
-        
+
         // set new endpoint (endpoint without arguments, signature is based on endpoint without arguments)
         $parsedUrl = parse_url($url);
         $endpoint = isset($parsedUrl['path']) ? $parsedUrl['path'] : $endpoint;
-        
-        $headers = (isset($headers) && is_array($headers)) ? $headers : [];
-        
+
         $signature = $this->getSignature($method, $contentType, $date, $endpoint);
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 60);
-        curl_setopt($ch, CURLOPT_HEADER, false);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'Wienkit BolPlaza PHP Client (wienkit.com)');
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array_merge([
+
+        $headers = array_merge($headers, [
             'Content-type: ' . $contentType,
             'X-BOL-Date: ' . $date,
             'X-BOL-Authorization: ' . $signature
-        ], $headers));
+        ]);
+
+        $httpRequest = $this->createHttpRequest($url);
+        $httpRequest->setOption(CURLOPT_CUSTOMREQUEST, $method);
+        $httpRequest->setOption(CURLOPT_RETURNTRANSFER, true);
+        $httpRequest->setOption(CURLOPT_TIMEOUT, self::HTTP_TIMEOUT);
+        $httpRequest->setOption(CURLOPT_HEADER, false);
+        $httpRequest->setOption(CURLOPT_USERAGENT, self::HTTP_USER_AGENT);
+        $httpRequest->setOption(CURLOPT_HTTPHEADER, $headers);
 
         if (in_array($method, ['POST', 'PUT', 'DELETE']) && ! is_null($data)) {
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+            $httpRequest->setOption(CURLOPT_POSTFIELDS, $data);
         } elseif ($method == 'GET' && !empty($data)) {
-            $separator = "?";
-            $suffix = "";
-            foreach ($data as $key => $value) {
-                $suffix .= $separator . $key . '=' . $value;
-                $separator = "&";
-            }
-            curl_setopt($ch, CURLOPT_URL, $url . $suffix);
+            $httpRequest->setOption(CURLOPT_URL, $url . '?' . http_build_query($data));
         }
 
         if ($this->skipSslVerification) {
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+            $httpRequest->setOption(CURLOPT_SSL_VERIFYPEER, false);
+            $httpRequest->setOption(CURLOPT_SSL_VERIFYHOST, false);
         }
         if ($this->parseHeaders) {
-            curl_setopt($ch, CURLOPT_HEADERFUNCTION, function($curl, $line) {
+            $httpRequest->setOption(CURLOPT_HEADERFUNCTION, function($curl, $line) {
                 if (stristr($line, ":")) {
                     list($key,$value) = explode(":", $line);
                     $this->responseHeaders[$key] = $value;
@@ -584,11 +582,13 @@ class BolPlazaClient
                 return strlen($line);
             });
         }
-        $result = curl_exec($ch);
-        $headerInfo = curl_getinfo($ch);
-        $this->checkForErrors($ch, $headerInfo, $result);
+        $result = $httpRequest->execute();
+        $headerInfo = $httpRequest->getInfo();
 
-        curl_close($ch);
+        // check for errors in results
+        $this->checkForErrors($httpRequest, $headerInfo, $result);
+
+        $httpRequest->close();
 
         return $result;
     }
@@ -635,16 +635,16 @@ class BolPlazaClient
      *
      * @see https://plazaapi.bol.com/services/xsd/serviceerror-1.5.xsd
      * @see https://developers.bol.com/documentatie/plaza-api/developer-guide-plaza-api/error-codes-messages/
-     * @param resource $ch The CURL resource of the request
+     * @param resource $httpRequest The CURL resource of the request
      * @param array $headerInfo
      * @param string $result
      * @throws BolPlazaClientException
      * @throws BolPlazaClientRateLimitException
      */
-    protected function checkForErrors($ch, $headerInfo, $result)
+    protected function checkForErrors($httpRequest, $headerInfo, $result)
     {
-        if (curl_errno($ch)) {
-            throw new BolPlazaClientException(curl_errno($ch));
+        if ($httpRequest->getErrorNumber()) {
+            throw new BolPlazaClientException($httpRequest->getErrorNumber());
         }
 
         if (intval($headerInfo['http_code']) < 200 || intval($headerInfo['http_code']) > 226) {
@@ -677,5 +677,14 @@ class BolPlazaClient
                 }
             }
         }
+    }
+
+    /**
+     * @param string $url
+     * @return CurlHttpRequest
+     */
+    protected function createHttpRequest($url)
+    {
+        return new CurlHttpRequest($url);
     }
 }
