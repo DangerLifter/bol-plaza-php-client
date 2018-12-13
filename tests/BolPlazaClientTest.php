@@ -55,17 +55,24 @@ class BolPlazaClientTest extends TestCase
 
     /**
      * Orders retrieve test
-     * @group orders
      */
-    public function testOrderRetrieve()
+    public function testOrdersRetrieve()
     {
         $this->setupMockResponse('v2.1/get_orders');
         $orders = $this->clientWithMockedHttpRequest->getOrders();
         $this->assertNotEmpty($orders);
-        echo "<pre>";
-        print_r($orders);
-        exit;
         return $orders;
+    }
+
+
+    /**
+     * Single order retrieve test
+     */
+    public function testSingleOrder()
+    {
+        $this->setupMockResponse('v2.1/get_orders');
+        $orders = $this->clientWithMockedHttpRequest->getOrder(1);
+        $this->assertNotNull($orders);
     }
 
     /**
@@ -102,7 +109,6 @@ class BolPlazaClientTest extends TestCase
      * Test Shipment.
      * As of version 2.1 DateTime, ExpectedDeliveryDate are no longer required
      * @see: https://developers.bol.com/shipments-2-1/#Create_a_shipment_21
-     * @group shipments
      */
     public function testProcessShipments()
     {
@@ -120,10 +126,6 @@ class BolPlazaClientTest extends TestCase
         $this->assertEquals($result->eventType, 'CONFIRM_SHIPMENT');
     }
 
-    /**
-     *
-     * @group shipments
-     */
     public function testGetShipments()
     {
         $this->setupMockResponse('v2.1/get_shipments');

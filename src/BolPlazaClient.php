@@ -95,6 +95,23 @@ class BolPlazaClient
     }
 
     /**
+     * Get single order
+     * @param string $orderId
+     * @return Mixed BolPlazaOrder|null
+     */
+    public function getOrder($orderId)
+    {
+        $url = sprintf(
+            "/services/rest/orders/%s/%s",
+            self::API_VERSION,
+            $orderId
+        );
+        $apiResult = $this->makeRequest('GET', $url, null, ['Accept: application/vnd.orders-v2.1+xml']);
+        $order = BolPlazaDataParser::createCollectionFromResponse('BolPlazaOrder', $apiResult);
+        return isset($order[0]) ? $order[0] : null;
+    }
+
+    /**
      * Get list of shipments
      * @param int $page The page of the set of shipments
      * @return array
