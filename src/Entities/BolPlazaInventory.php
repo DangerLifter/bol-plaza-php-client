@@ -8,7 +8,7 @@ namespace Wienkit\BolPlazaClient\Entities;
  *
  * @property string $TotalCount
  * @property string $TotalPageCount
- * @property Offers[] $Offers
+ * @property BolPlazaInventoryOffer[] $Offers
  */
 class BolPlazaInventory extends BaseModel {
 
