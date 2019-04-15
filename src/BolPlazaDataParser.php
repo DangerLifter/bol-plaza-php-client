@@ -38,15 +38,14 @@ class BolPlazaDataParser
      */
     public static function createEntityFromResponse($entity, $xml)
     {
-        $entity = 'Wienkit\\BolPlazaClient\\Entities\\' . $entity;
-        if ($xml instanceof SimpleXMLElement) {
-            $xmlElement = $xml;
-        } else {
-            $model = new $entity;
-            $xmlElement = self::parseXmlResponse($xml, $model->getXmlNamespace());
-        }
-        $object = self::fillModelFromXmlObject($model, $xmlElement);
-        return $object;
+		$entity = 'Wienkit\\BolPlazaClient\\Entities\\' . $entity;
+		$model = new $entity;
+		$xmlElement =
+			$xml instanceof SimpleXMLElement
+				? $xml
+				: self::parseXmlResponse($xml, $model->getXmlNamespace());
+
+		return self::fillModelFromXmlObject($model, $xmlElement);
     }
 
     /**
