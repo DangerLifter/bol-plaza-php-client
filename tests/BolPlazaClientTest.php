@@ -21,7 +21,7 @@ use Wienkit\BolPlazaClient\BolPlazaClient;
 
 use Wienkit\BolPlazaClient\Exceptions\BolPlazaClientException;
 
-include_once "./config.inc.php";
+include_once __DIR__."/config.inc.php";
 
 class BolPlazaClientTest extends TestCase
 {
@@ -30,7 +30,7 @@ class BolPlazaClientTest extends TestCase
      */
     private $client;
 
-    public function setUp()
+    public function setUp(): void
     {
         date_default_timezone_set('Europe/Amsterdam');
 
@@ -334,19 +334,6 @@ class BolPlazaClientTest extends TestCase
         $this->assertEquals($result->Url, 'https://test-plazaapi.bol.com/offers/v2/export/offers.csv');
         return $result->Url;
     }
-
-	public function testGetSingleOffer()
-	{
-		$this->markTestSkipped('Skipped because of incomplete bol.com test environment');
-
-		$ean = '1';
-		$result = $this->client->getSingleOffer($ean);
-		$this->assertTrue(is_array($result));
-		$this->assertEquals(\count($result), 1);
-		$offer = $result[0];
-		$this->assertInstanceOf(BolPlazaOffer::class, $offer);
-		$this->assertEquals($ean, $offer->EAN);
-	}
 
     /**
      * @TODO: Ignored because Test env returns other logic than prod
