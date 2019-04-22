@@ -49,6 +49,8 @@ class BolPlazaClient
 
     private $_verbose = false;
 
+    private $_proxy;
+
     /**
      * BolPlazaClient constructor.
      * @param $publicKey
@@ -59,6 +61,12 @@ class BolPlazaClient
         $this->publicKey = $publicKey;
         $this->privateKey = $privateKey;
     }
+
+    public function setProxy(string $proxy = null)
+	{
+		$this->_proxy = $proxy;
+		return $this;
+	}
 
     public function setVerbose(bool $verbose)
 	{
@@ -622,6 +630,10 @@ class BolPlazaClient
         $httpRequest->setOption(CURLOPT_USERAGENT, self::HTTP_USER_AGENT);
         if ($this->_verbose) {
 			$httpRequest->setOption(CURLOPT_VERBOSE, true);
+		}
+
+		if ($this->_proxy) {
+			$httpRequest->setOption(CURLOPT_PROXY, $this->_proxy);
 		}
 
         $httpRequest->setOption(CURLOPT_HTTPHEADER, $headers);
